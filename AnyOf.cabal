@@ -60,13 +60,18 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  MyLib
+    exposed-modules:  Any
 
     -- Modules included in this library but not exported.
     -- other-modules:
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+    default-extensions:
+        DataKinds,
+        FlexibleInstances,
+        GADTs,
+        MultiParamTypeClasses,
+        TypeFamilies,
+        TypeOperators
 
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.18.3.0
