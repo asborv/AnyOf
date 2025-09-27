@@ -103,6 +103,10 @@ cotuple (f :& _)  (Here x)  = f x
 cotuple (_ :& fs) (There v) = cotuple fs v
 cotuple Nil       v         = none v
 
+(<+>) :: Cotuple a as -> Cotuple a bs -> Cotuple a (as <> bs)
+(<+>) Nil gs = gs
+(<+>) (f :& fs) gs = f :& fs <+> gs
+
 ---------------
 -- TYPE UTILS
 ---------------
@@ -114,6 +118,7 @@ type family (<>) (xs :: [k]) (ys :: [k]) :: [k] where
 type (<|>) :: Type -> Type -> Type
 type family (<|>) u v where
   (<|>) (Any xs) (Any ys) = Any (xs <> ys)
+  (<|>) (Cotuple r fs) (Cotuple r gs) = Cotuple r (fs <> gs)
 
 -------------
 -- EXAMPLES
@@ -124,27 +129,34 @@ data B = B
 data C = C
 data D = D
 
-type U = Any '[A, B]
-type Y = Any '[C, D]
+type U = '[A, B]
+type V = '[C, D]
 
-type W = U <|> Y
+type SumU = Any U
+type SumV = Any V
 
-foo :: W -> String
+foo :: Any (U <> V) -> String
 foo =
   caseAny (\A -> "A") $
   caseAny (\B -> "B")
   baz
 
-foo' :: U -> String
-foo' = cotuple $ const "A" :& const "B" :& Nil
+foo' :: Any (U <> V) -> String
+foo' = cotuple $ co <+> co'
+  where
+    co :: Cotuple String U
+    co = const "A" :& const "B" :& Nil
 
-bar :: U -> String
+    co' :: Cotuple String V
+    co' = const "A" :& const "B" :& Nil
+
+bar :: Any U -> String
 bar =
   caseAny (\A -> "A") $
   caseAny (\B -> "B")
   none
 
-baz :: Y -> String
+baz :: SumV -> String
 baz =
   caseAny (\C -> "C") $
   caseAny (\D -> "D")
