@@ -31,11 +31,11 @@ injectAt :: Member a ts -> a -> Any ts
 injectAt Head     x = Here x
 injectAt (Tail i) x = There $ injectAt i x
 
-projectAt :: Member a ts -> Any ts -> Maybe a
-projectAt Head       (Here x)  = Just x
-projectAt Head       (There _) = Nothing
-projectAt (Tail _)   (Here _)  = Nothing
-projectAt (Tail prf) (There v) = projectAt prf v
+projectFrom :: Member a ts -> Any ts -> Maybe a
+projectFrom Head       (Here x)  = Just x
+projectFrom Head       (There _) = Nothing
+projectFrom (Tail _)   (Here _)  = Nothing
+projectFrom (Tail prf) (There v) = projectFrom prf v
 
 data N = Z | S N
 
@@ -65,7 +65,7 @@ inject :: forall a ts. BuildMember (Find a ts) a ts => a -> Any ts
 inject = injectAt (member @a @ts)
 
 project :: forall a ts. BuildMember (Find a ts) a ts => Any ts -> Maybe a
-project = projectAt (member @a @ts)
+project = projectFrom (member @a @ts)
 
 ----------------------------------------------------------------
 -- Example
@@ -77,8 +77,8 @@ caseAny :: (a -> r) -> (Any as -> r) -> Any (a ': as) -> r
 caseAny f _ (Here x)  = f x
 caseAny _ g (There v) = g v
 
-absurdAny :: Any '[] -> a
-absurdAny empty = case empty of {}
+none :: Any '[] -> a
+none empty = case empty of {}
 
 type family (<>) (xs :: [k]) (ys :: [k]) :: [k] where
   (<>) '[]       ys = ys
@@ -120,13 +120,13 @@ bar :: U -> String
 bar =
   caseAny (\A -> "A") $
   caseAny (\B -> "B")
-  absurdAny
+  none
 
 baz :: Y -> String
 baz =
   caseAny (\C -> "C") $
   caseAny (\D -> "D")
-  absurdAny
+  none
 
 -- | Very neat pattern matching, no completeness check though
 -- handleU' :: U -> String
