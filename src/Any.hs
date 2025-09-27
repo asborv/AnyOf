@@ -7,9 +7,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 
 module Any where
@@ -18,30 +16,28 @@ import Data.Kind (Type)
 import GHC.TypeLits (ErrorMessage(..), TypeError)
 import Data.Data (Proxy (..))
 
+-------------
+-- open SUM
+-------------
+
 data Any :: [Type] -> Type where
   Here  :: a       -> Any (a ': as)
   There :: Any as  -> Any (b ': as)
+
+-------------------
+-- SUM MEMBERSHIP
+-------------------
 
 -- | Membership evidence that 'a' occurs in 'ts'.
 data Member :: k -> [k] -> Type where
   Head ::                Member a (a ': as) -- at the head
   Tail :: Member a as -> Member a (b ': as) -- in the tail
 
-injectAt :: Member a ts -> a -> Any ts
-injectAt Head     x = Here x
-injectAt (Tail i) x = There $ injectAt i x
-
-projectFrom :: Member a ts -> Any ts -> Maybe a
-projectFrom Head       (Here x)  = Just x
-projectFrom Head       (There _) = Nothing
-projectFrom (Tail _)   (Here _)  = Nothing
-projectFrom (Tail prf) (There v) = projectFrom prf v
-
 data N = Z | S N
 
 -- | Find the (leftmost) position of 'a' in 'ts' as a Peano index.
 type family Find (a :: k) (ts :: [k]) :: N where
-  Find a '[]       = TypeError ( 'Text "Type " ':<>: 'ShowType a ':<>: 'Text " is not a member of the list" )
+  Find a '[]       = TypeError ('Text "Type " ':<>: 'ShowType a ':<>: 'Text " is not a member of the list")
   Find a (a ': ts) = 'Z
   Find a (_ ': ts) = 'S (Find a ts)
 
@@ -61,16 +57,33 @@ instance BuildMember n a ts => BuildMember ('S n) a (b ': ts) where
 member :: forall a ts. BuildMember (Find a ts) a ts => Member a ts
 member = buildMember (Proxy @(Find a ts))
 
+------------------
+-- SUM INJECTION
+------------------
+
+injectAt :: Member a ts -> a -> Any ts
+injectAt Head     x = Here x
+injectAt (Tail i) x = There $ injectAt i x
+
 inject :: forall a ts. BuildMember (Find a ts) a ts => a -> Any ts
 inject = injectAt (member @a @ts)
+
+-------------------
+-- SUM PROJECTION
+-------------------
+
+projectFrom :: Member a ts -> Any ts -> Maybe a
+projectFrom Head       (Here x)  = Just x
+projectFrom Head       (There _) = Nothing
+projectFrom (Tail _)   (Here _)  = Nothing
+projectFrom (Tail prf) (There v) = projectFrom prf v
 
 project :: forall a ts. BuildMember (Find a ts) a ts => Any ts -> Maybe a
 project = projectFrom (member @a @ts)
 
-----------------------------------------------------------------
--- Example
-----------------------------------------------------------------
-
+----------------
+-- ELIMINATION
+----------------
 
 -- Case on the head of a sum:
 caseAny :: (a -> r) -> (Any as -> r) -> Any (a ': as) -> r
@@ -80,25 +93,31 @@ caseAny _ g (There v) = g v
 none :: Any '[] -> a
 none empty = case empty of {}
 
+infixr 5 :&
+data Cotuple (r :: Type) (as :: [Type]) :: Type where
+  Nil :: Cotuple r '[]
+  (:&) :: (a -> r) -> Cotuple r as -> Cotuple r (a ': as)
+
+cotuple :: Cotuple r as -> Any as -> r
+cotuple (f :& _)  (Here x)  = f x
+cotuple (_ :& fs) (There v) = cotuple fs v
+cotuple Nil       v         = none v
+
+---------------
+-- TYPE UTILS
+---------------
+
 type family (<>) (xs :: [k]) (ys :: [k]) :: [k] where
   (<>) '[]       ys = ys
   (<>) (x ': xs) ys = x ': xs <> ys
 
-type Union :: Type -> Type -> Type
-type family Union u v where
-  Union (Any xs) (Any ys) = Any (xs <> ys)
+type (<|>) :: Type -> Type -> Type
+type family (<|>) u v where
+  (<|>) (Any xs) (Any ys) = Any (xs <> ys)
 
-weakenLeft :: forall xs ys. Any xs -> Any (xs <> ys)
-weakenLeft = go
-  where
-    go :: forall xs'. Any xs' -> Any (xs' <> ys)
-    go (Here x)  = Here x
-    go (There v) = There (go v)
-
--- | This allows us to do At-matching, but we don't get completeness checking
-pattern At :: forall a ts. BuildMember (Find a ts) a ts => a -> Any ts
-pattern At x <- (project @a -> Just x) where
-  At x = inject @a x
+-------------
+-- EXAMPLES
+-------------
 
 data A = A
 data B = B
@@ -108,13 +127,16 @@ data D = D
 type U = Any '[A, B]
 type Y = Any '[C, D]
 
-type W = Union U Y
+type W = U <|> Y
 
 foo :: W -> String
 foo =
   caseAny (\A -> "A") $
   caseAny (\B -> "B")
   baz
+
+foo' :: U -> String
+foo' = cotuple $ const "A" :& const "B" :& Nil
 
 bar :: U -> String
 bar =
@@ -128,8 +150,3 @@ baz =
   caseAny (\D -> "D")
   none
 
--- | Very neat pattern matching, no completeness check though
--- handleU' :: U -> String
--- handleU' (At A) = "A"
--- handleU' (At B) = "A"
--- handleU' (At C) = "A"
