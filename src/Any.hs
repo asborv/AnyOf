@@ -8,7 +8,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
 
 module Any where
 
@@ -128,6 +127,10 @@ type family (\\) (xs :: [Type]) (ys :: [Type]) :: [Type] where
   xs \\ '[]       = xs
   xs \\ (y ': ys) = Remove y xs \\ ys
 
+type family (Diff) u v where
+  Diff (Any as) (Any bs) = Any (as \\ bs)
+  Diff (Cotuple r as) (Cotuple r bs) = Cotuple r (as \\ bs)
+
 -------------
 -- EXAMPLES
 -------------
@@ -185,7 +188,7 @@ ajj (There (There v)) = none v
 
 -- Eliminate certain elements from a sum.
 -- Here we take Any '[A, B, C, D] into Any '[A, C], eliminating B and D.
-aef :: Any (U <> V) -> Either (Any ((U <> V) \\ '[B, D])) String
+aef :: Any (U <> V) -> Either (Any (U <> V) `Diff` Any '[B, D]) String
 aef (Here A)                          = Left $ inject A
 aef (There (Here B))                  = Right "B"
 aef (There (There (Here C)))          = Left $ inject C
