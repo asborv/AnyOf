@@ -123,6 +123,10 @@ type family Remove (a :: Type) (ts :: [Type]) :: [Type] where
   Remove a (a ': as) = as
   Remove a (b ': as) = b : Remove a as
 
+type family Elim a u where
+  Elim a (Any ts)       = Any (Remove a ts)
+  Elim a (Cotuple r ts) = Cotuple r (Remove a ts)
+
 type family (\\) (xs :: [Type]) (ys :: [Type]) :: [Type] where
   xs \\ '[]       = xs
   xs \\ (y ': ys) = Remove y xs \\ ys
@@ -194,4 +198,11 @@ aef (There (Here B))                  = Right "B"
 aef (There (There (Here C)))          = Left $ inject C
 aef (There (There (There (Here D))))  = Right "D"
 aef (There (There (There (There v)))) = none v
+
+boef :: Any (U <> V) -> Either (Elim A (Any (U <> V))) String
+boef  (Here A)                          = Right "A"
+boef  (There (Here B))                  = Left $ inject B
+boef  (There (There (Here C)))          = Left $ inject C
+boef  (There (There (There (Here D))))  = Left $ inject D
+boef  (There (There (There (There v)))) = none v
 
