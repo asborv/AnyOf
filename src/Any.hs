@@ -120,6 +120,15 @@ type family (<|>) u v where
   (<|>) (Any xs)       (Any ys)       = Any (xs <> ys)
   (<|>) (Cotuple r fs) (Cotuple r gs) = Cotuple r (fs <> gs)
 
+type family Remove (a :: Type) (ts :: [Type]) :: [Type] where
+  Remove _ '[] = '[]
+  Remove a (a ': as) = as
+  Remove a (b ': as) = b : Remove a as
+
+type family (\\) (xs :: [Type]) (ys :: [Type]) :: [Type] where
+  xs \\ '[] = xs
+  xs \\ (y ': ys) = Remove y xs \\ ys
+
 -------------
 -- EXAMPLES
 -------------
@@ -161,4 +170,26 @@ baz =
   caseAny (\C -> "C") $
   caseAny (\D -> "D")
   none
+
+-- | Partially pattern match. Handle as many cases as you want.
+gib :: Any (U <> V) -> Either (Any V) String
+gib (Here A) = Right "A"
+gib (There (Here B)) = Right "B"
+gib (There (There v)) = Left v
+
+-- | Complete pattern match. 
+-- Match all, and end with a `none v` to eliminate the empty sum.
+ajj :: Any U -> String
+ajj (Here A)          = "A"
+ajj (There (Here B))  = "B"
+ajj (There (There v)) = none v
+
+-- Eliminate certain elements from a sum.
+-- Here we take Any '[A, B, C, D] into Any '[A, C], eliminating B and D.
+aef :: Any (U <> V) -> Either (Any ((U <> V) \\ '[B, D])) String
+aef (Here A)                          = Left $ inject A
+aef (There (Here B))                  = Right "B"
+aef (There (There (Here C)))          = Left $ inject C
+aef (There (There (There (Here D))))  = Right "D"
+aef (There (There (There (There v)))) = none v
 
