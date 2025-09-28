@@ -115,18 +115,17 @@ type family (<>) (xs :: [k]) (ys :: [k]) :: [k] where
   (<>) '[]       ys = ys
   (<>) (x ': xs) ys = x ': xs <> ys
 
-type (<|>) :: Type -> Type -> Type
 type family (<|>) u v where
   (<|>) (Any xs)       (Any ys)       = Any (xs <> ys)
   (<|>) (Cotuple r fs) (Cotuple r gs) = Cotuple r (fs <> gs)
 
 type family Remove (a :: Type) (ts :: [Type]) :: [Type] where
-  Remove _ '[] = '[]
+  Remove _ '[]       = '[]
   Remove a (a ': as) = as
   Remove a (b ': as) = b : Remove a as
 
 type family (\\) (xs :: [Type]) (ys :: [Type]) :: [Type] where
-  xs \\ '[] = xs
+  xs \\ '[]       = xs
   xs \\ (y ': ys) = Remove y xs \\ ys
 
 -------------
