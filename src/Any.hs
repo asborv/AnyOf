@@ -17,7 +17,7 @@ import GHC.TypeLits (ErrorMessage(..), TypeError)
 import Data.Data (Proxy (..))
 
 -------------
--- open SUM
+-- OPEN SUM
 -------------
 
 data Any :: [Type] -> Type where
