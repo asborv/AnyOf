@@ -95,7 +95,7 @@ none empty = case empty of {}
 
 infixr 5 :&
 data Cotuple (r :: Type) (as :: [Type]) :: Type where
-  Nil :: Cotuple r '[]
+  Nil  ::                             Cotuple r '[]
   (:&) :: (a -> r) -> Cotuple r as -> Cotuple r (a ': as)
 
 cotuple :: Cotuple r as -> Any as -> r
@@ -104,7 +104,7 @@ cotuple (_ :& fs) (There v) = cotuple fs v
 cotuple Nil       v         = none v
 
 (<+>) :: Cotuple a as -> Cotuple a bs -> Cotuple a (as <> bs)
-(<+>) Nil gs = gs
+(<+>) Nil       gs = gs
 (<+>) (f :& fs) gs = f :& fs <+> gs
 
 ---------------
@@ -117,7 +117,7 @@ type family (<>) (xs :: [k]) (ys :: [k]) :: [k] where
 
 type (<|>) :: Type -> Type -> Type
 type family (<|>) u v where
-  (<|>) (Any xs) (Any ys) = Any (xs <> ys)
+  (<|>) (Any xs)       (Any ys)       = Any (xs <> ys)
   (<|>) (Cotuple r fs) (Cotuple r gs) = Cotuple r (fs <> gs)
 
 -------------
