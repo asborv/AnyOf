@@ -135,6 +135,26 @@ type family Diff u v where
   Diff (Any as)       (Any bs)       = Any (as \\ bs)
   Diff (Cotuple r as) (Cotuple r bs) = Cotuple r (as \\ bs)
 
+-- Convert from an ADT to open sum
+class ToAny a as where
+  toAny :: a -> Any as
+
+-- Convert from an open sum to an ADT
+class FromAny a as where
+  fromAny :: Any as -> a
+
+instance ToAny (Either a b) '[a, b] where
+  toAny = either Here (There . Here)
+
+instance FromAny (Either a b) '[a, b] where
+  fromAny = cotuple $ Left :& Right :& Nil
+
+instance ToAny (Maybe a) '[a, ()] where
+  toAny = maybe (There $ Here ()) inject
+
+instance FromAny (Maybe a) '[(), a] where
+  fromAny = cotuple $ const Nothing :& Just :& Nil
+
 -------------
 -- EXAMPLES
 -------------
