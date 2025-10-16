@@ -131,8 +131,8 @@ type family (\\) (xs :: [Type]) (ys :: [Type]) :: [Type] where
   xs \\ '[]       = xs
   xs \\ (y ': ys) = Remove y xs \\ ys
 
-type family (Diff) u v where
-  Diff (Any as) (Any bs) = Any (as \\ bs)
+type family Diff u v where
+  Diff (Any as)       (Any bs)       = Any (as \\ bs)
   Diff (Cotuple r as) (Cotuple r bs) = Cotuple r (as \\ bs)
 
 -------------
