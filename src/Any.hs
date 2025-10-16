@@ -120,7 +120,7 @@ type family (<|>) u v where
 
 type family Remove (a :: Type) (ts :: [Type]) :: [Type] where
   Remove _ '[]       = '[]
-  Remove a (a ': as) = as
+  Remove a (a ': as) = Remove a as
   Remove a (b ': as) = b : Remove a as
 
 type family Elim a u where
